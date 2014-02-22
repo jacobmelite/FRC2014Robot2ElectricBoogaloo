@@ -93,6 +93,8 @@ public class Robot extends IterativeRobot {
 
         //Initializing comms for Beaglebone
         //vision = new Vision();
+        vision = new Vision();
+        vision.startThread();
         leds = new LEDs(0, 7, 6, 5);
     }
 
@@ -145,9 +147,7 @@ public class Robot extends IterativeRobot {
 
     public void autonomousInit() {
         init();
-        vision = new Vision();
         vision.resetData();
-        vision.startThread();
         counter = 0;
         if (DriverStation.getInstance().getDigitalIn(1)) {
             autonomousMode = 1;

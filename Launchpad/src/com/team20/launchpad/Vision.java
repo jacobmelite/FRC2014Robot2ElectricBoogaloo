@@ -23,9 +23,9 @@ public class Vision {
     private int redBallX = 0, redBallY = 0,
             blueBallX = 0, blueBallY = 0,
             horizontalX = 0, horizontalY = 0,
-            verticalX = 0, verticalY = 0, mode = 0;
-    public final int CAMERA_PROCESSING_TIME = 400, THREAD_TIMEOUT_TIME = 15000,
-            DATA_CYCLE_TIME = CAMERA_PROCESSING_TIME + 100, BALL_CENTERED_PIXELS_X = 300;
+            verticalX = 0, verticalY = 0, mode = -1;
+    public final int CAMERA_PROCESSING_TIME = 400/*, THREAD_TIMEOUT_TIME = 15000000*/,
+            DATA_CYCLE_TIME = CAMERA_PROCESSING_TIME + 100, BALL_CENTERED_PIXELS_X = 160;//TODO: find the pixel range for "centered"
     public final double BALL_CENTERED_TOLERANCE = .08;
     //NetworkTable visionTable = NetworkTable.getTable("Vision");
     private SocketConnection sc;
@@ -34,15 +34,13 @@ public class Vision {
     private byte[] buffer = new byte[5];
     Thread st;
 
-   
-
     public Vision() {
 
         st = new Thread() {
             public void run() {
                 //open connection
                 try {
-                    sc = (SocketConnection) Connector.open("socket://10.0.20.15:9090");
+                    sc = (SocketConnection) Connector.open("socket://10.0.20.123:9090");
                     sc.setSocketOption(SocketConnection.LINGER, 5);
                     os = sc.openOutputStream();
                     is = sc.openInputStream();
@@ -61,22 +59,24 @@ public class Vision {
                         }
                         //get data from the beaglebone
                         //   System.out.println("vision is getting data");
-                        getData(mode);
-                        //  System.out.println("vision is processing data");
-                        processBuffer();
+                        if (mode != -1) {
+                            getData(mode);
+                            //  System.out.println("vision is processing data");
+                            processBuffer();
+                        }
 
                         //time limit on connection
-                        if (System.currentTimeMillis() - startTime > THREAD_TIMEOUT_TIME) {
-                            System.out.println("Vision is closing comms");
-                            try {
-                                sc.close();
-                                os.close();
-                                is.close();
-                            } catch (IOException ex) {
-                                System.out.println("had trouble closing comms " + ex.toString());
-                            }
-                            break;
-                        }
+                        /*if (System.currentTimeMillis() - startTime > THREAD_TIMEOUT_TIME) {
+                         System.out.println("Vision is closing comms");
+                         try {
+                         sc.close();
+                         os.close();
+                         is.close();
+                         } catch (IOException ex) {
+                         System.out.println("had trouble closing comms " + ex.toString());
+                         }
+                         break;
+                         }*/
                     }
                 } catch (IOException e) {
                     System.out.println("had trouble opening comms " + e.toString());
@@ -110,7 +110,6 @@ public class Vision {
             //Thread.sleep(CAMERA_PROCESSING_TIME);//wait for processing
             os.write(5);//ask for image processing data
             os.flush();
-
             int n;
             do {
             } while ((n = is.available()) == 0);
@@ -146,6 +145,9 @@ public class Vision {
 
     //processing
     private void processBuffer() {
+        if (buffer[0] == -1) {
+            return;
+        }
         if (buffer == null || buffer.length < 5) {
             System.out.println("buffer is null or has less than 5 pieces of data");
             return;
@@ -176,6 +178,7 @@ public class Vision {
                 blueBallInfoUpdated = true;
                 break;
         }
+        resetBuffer();
     }
 
     private boolean isByteTrue(byte b) {
@@ -192,19 +195,33 @@ public class Vision {
 
         if (red) {
             if (!redBallInfoUpdated) {
-                System.out.println("Using outdated red ball info to calculate center point");
+                System.out.println("Using outdated red ball info to return centered");
             }
-            return (isBallCentered(redBallX/*, redBallY*/));
+            return (isXValCentered(redBallX/*, redBallY*/));
         } else {
             if (!blueBallInfoUpdated) {
-                System.out.println("Using outdated blue ball info to calculate center point");
+                System.out.println("Using outdated blue ball info to return centered");
             }
-            return isBallCentered(blueBallX/*, blueBallY*/);
+            return isXValCentered(blueBallX/*, blueBallY*/);
         }
     }
 
-    private boolean isBallCentered(int x/*, int y*/) {
+    public boolean isXValCentered(int x/*, int y*/) {
         return x * (1 - BALL_CENTERED_TOLERANCE) < BALL_CENTERED_PIXELS_X && x * (1 + BALL_CENTERED_TOLERANCE) > BALL_CENTERED_PIXELS_X;
+    }
+
+    public boolean isHorizontalCentered() {
+        if (!this.isHorizontalInfoUpdated()) {
+            System.out.println("using outdated horizontal info to return centered");
+        }
+        return isXValCentered(getHorizontalX());
+    }
+
+    public boolean isVerticalCentered() {
+        if (!this.isVerticalInfoUpdated()) {
+            System.out.println("using outdated horizontal info to return centered");
+        }
+        return isXValCentered(getVerticalX());
     }
 
     //getters
@@ -276,7 +293,8 @@ public class Vision {
     public int getHorizontalY() {
         return horizontalY;
     }
-     public void resetData() {
+
+    public void resetData() {
         redBallDetected = false;
         blueBallDetected = false;
         horizontal = false;
@@ -294,5 +312,12 @@ public class Vision {
         verticalX = 0;
         verticalY = 0;
         mode = 0;
+        resetBuffer();
+    }
+
+    private void resetBuffer() {
+        for (int a = 0; a < buffer.length; a++) {
+            buffer[a] = -1;
+        }
     }
 }
