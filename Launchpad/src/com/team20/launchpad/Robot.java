@@ -12,7 +12,6 @@ import edu.wpi.first.wpilibj.Compressor;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.IterativeRobot;
-import edu.wpi.first.wpilibj.Relay;
 import edu.wpi.first.wpilibj.buttons.JoystickButton;
 
 /**
@@ -41,7 +40,7 @@ public class Robot extends IterativeRobot {
     Drivetrain drivetrain;
     Collector collector;
     Compressor compressor;
-    Relay relay;
+    //Relay relay;
     Catapult catapult;
     CatcherPanel rightPanel, leftPanel, backPanel;
     
@@ -183,7 +182,7 @@ public class Robot extends IterativeRobot {
             //Waiting for panels and collector to come out
         
         }else if(counter < 170){
-            if(drivetrain.getLeftDistance() < 1100){
+            if(drivetrain.getLeftEncoderCount() < 1100){
                 drivetrain.arcadeDrive(-1, 0);
             }else{
                 drivetrain.arcadeDrive(0, 0);
@@ -208,7 +207,7 @@ public class Robot extends IterativeRobot {
             catapult.shoot();
             drivetrain.arcadeDrive(0, 0);
         }else if (counter < 230){
-            if(drivetrain.getLeftDistance() < 1100){
+            if(drivetrain.getLeftEncoderCount() < 1100){
                 drivetrain.arcadeDrive(-1, 0);
                 collector.drive();
             }else{
@@ -230,14 +229,14 @@ public class Robot extends IterativeRobot {
             catapult.shoot();
             drivetrain.arcadeDrive(0, 0);
         }else if (counter < 230){
-            if(drivetrain.getLeftDistance() < 1100){
+            if(drivetrain.getLeftEncoderCount() < 1100){
                 drivetrain.arcadeDrive(-1, 0);
                 collector.drive();
             }else{
                 drivetrain.arcadeDrive(0, 0);
             }
         }else{
-            if(drivetrain.getLeftDistance() > 0){
+            if(drivetrain.getLeftEncoderCount() > 0){
                 drivetrain.arcadeDrive(1, 0);
             }else{
                 drivetrain.arcadeDrive(0, 0);
@@ -259,7 +258,7 @@ public class Robot extends IterativeRobot {
             drivetrain.arcadeDrive(0, 0);
         }else if (counter < 250){
             //catapult.engageMotors();
-            if(drivetrain.getLeftDistance() < (1300*1.25)){
+            if(drivetrain.getLeftEncoderCount() < (1300*1.25)){
                 drivetrain.arcadeDrive(-1, 0);
                 leftPanel.bloom();
                 rightPanel.bloom();

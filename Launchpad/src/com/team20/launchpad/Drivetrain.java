@@ -89,12 +89,12 @@ public class Drivetrain {
         
     }
     
-    public int getRightDistance(){
+    public int getRightEncoderCount(){
         //return port14.get();
         return rightEncoder.get();
     }
     
-    public int getLeftDistance(){
+    public int getLeftEncoderCount(){
         return leftEncoder.get();
     }
     

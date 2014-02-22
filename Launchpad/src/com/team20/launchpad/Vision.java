@@ -16,14 +16,16 @@ import javax.microedition.io.SocketConnection;
  */
 public class Vision {
 
-    private boolean redBallDetected = false, blueBallDetected = false, horizontal = false, vertical = false;
-    private boolean redBallInfoUpdated = false, blueBallInfoUpdated = false, horizontalInfoUpdated = false, verticalInfoUpdated = false;
+    private boolean redBallDetected = false, blueBallDetected = false,
+            horizontal = false, vertical = false, redBallInfoUpdated = false,
+            blueBallInfoUpdated = false, horizontalInfoUpdated = false,
+            verticalInfoUpdated = false;
     private int redBallX = 0, redBallY = 0,
             blueBallX = 0, blueBallY = 0,
             horizontalX = 0, horizontalY = 0,
-            verticalX = 0, verticalY = 0;
-    private int mode = 0;
-    public final int CAMERA_PROCESSING_TIME = 400, THREAD_TIMEOUT_TIME = 15000, DATA_CYCLE_TIME = CAMERA_PROCESSING_TIME + 100, BALL_CENTERED_PIXELS = 300;
+            verticalX = 0, verticalY = 0, mode = 0;
+    public final int CAMERA_PROCESSING_TIME = 400, THREAD_TIMEOUT_TIME = 15000,
+            DATA_CYCLE_TIME = CAMERA_PROCESSING_TIME + 100, BALL_CENTERED_PIXELS_X = 300;
     public final double BALL_CENTERED_TOLERANCE = .08;
     //NetworkTable visionTable = NetworkTable.getTable("Vision");
     private SocketConnection sc;
@@ -42,13 +44,13 @@ public class Vision {
                     sc.setSocketOption(SocketConnection.LINGER, 5);
                     os = sc.openOutputStream();
                     is = sc.openInputStream();
-                    
+
                     long startTime = System.currentTimeMillis();
-                    long incrementalTime = System.currentTimeMillis();
+                    long incrementalTime = startTime;
 
                     while (true) {
                         //falsify all infoUpdated so the class knows that its info is out of date
-                        if (incrementalTime - System.currentTimeMillis() > DATA_CYCLE_TIME + 50) {
+                        if (System.currentTimeMillis() - incrementalTime > DATA_CYCLE_TIME + 50) {
                             redBallInfoUpdated = false;
                             blueBallInfoUpdated = false;
                             horizontalInfoUpdated = false;
@@ -62,7 +64,7 @@ public class Vision {
                         processBuffer();
 
                         //time limit on connection
-                        if (startTime - System.currentTimeMillis() > THREAD_TIMEOUT_TIME) {
+                        if (System.currentTimeMillis() - startTime > THREAD_TIMEOUT_TIME) {
                             System.out.println("Vision is closing comms");
                             try {
                                 sc.close();
@@ -81,8 +83,13 @@ public class Vision {
             }
         };
     }
+
     boolean threadHasStarted = false;
 
+    /**
+     * This MUST be called once so that this class starts writing to the
+     * beaglebone
+     */
     public void startThread() {
         if (!threadHasStarted) {
             st.start();
@@ -91,34 +98,10 @@ public class Vision {
 
     }
 
-    private boolean isByteTrue(byte b) {
-        return b == 1;
-    }
-
-    private short addBytes(byte b, byte c) {
-        short ret = (short) (b << 8);
-        ret |= c;
-        return ret >= 0 ? ret : (short) (ret + 256);
-    }
-    /* public boolean isBallCentered(boolean red){
-     if(red){
-     return(isBallCentered(redBallX,redBallY))
-     }else{
-            
-     }
-     }
-     private boolean isBallCentered(int x, int y){
-        
-     }*/
-
-    public int getMode() {
-        return mode;
-    }
-
     private void getData(int b) {
 
         try {
-            
+
             //is.skip(is.available());
             os.write(b);//0 horiz 1 vert 2 red 3 blue
             os.flush();
@@ -141,6 +124,25 @@ public class Vision {
         }
     }
 
+    //mode updaters
+    public void lookForHorizontalInfo() {
+        mode = 0;
+
+    }
+
+    public void lookForVerticalInfo() {
+        mode = 1;
+    }
+
+    public void lookForRedBallInfo() {
+        mode = 2;
+    }
+
+    public void lookForBlueBallInfo() {
+        mode = 3;
+    }
+
+    //processing
     private void processBuffer() {
         if (buffer == null || buffer.length < 5) {
             System.out.println("buffer is null or has less than 5 pieces of data");
@@ -174,21 +176,38 @@ public class Vision {
         }
     }
 
-    public void lookForHorizontalInfo() {
-        mode = 0;
-
+    private boolean isByteTrue(byte b) {
+        return b == 1;
     }
 
-    public void lookForVerticalInfo() {
-        mode = 1;
+    private short addBytes(byte b, byte c) {
+        short ret = (short) (b << 8);
+        ret |= c;
+        return ret >= 0 ? ret : (short) (ret + 256);
     }
 
-    public void lookForRedBallInfo() {
-        mode = 2;
+    public boolean isBallCentered(boolean red) {
+
+        if (red) {
+            if (!redBallInfoUpdated) {
+                System.out.println("Using outdated red ball info to calculate center point");
+            }
+            return (isBallCentered(redBallX/*, redBallY*/));
+        } else {
+            if (!blueBallInfoUpdated) {
+                System.out.println("Using outdated blue ball info to calculate center point");
+            }
+            return isBallCentered(blueBallX/*, blueBallY*/);
+        }
     }
 
-    public void lookForBlueBallInfo() {
-        mode = 3;
+    private boolean isBallCentered(int x/*, int y*/) {
+        return x * (1 - BALL_CENTERED_TOLERANCE) < BALL_CENTERED_PIXELS_X && x * (1 + BALL_CENTERED_TOLERANCE) > BALL_CENTERED_PIXELS_X;
+    }
+    
+    //getters
+    public int getMode() {
+        return mode;
     }
 
     public boolean isHorizontalInfoUpdated() {
