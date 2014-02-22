@@ -84,6 +84,12 @@ public class Drivetrain {
     public void lowGear(){
         shifter.set(DoubleSolenoid.Value.kForward);
     }
+    public  boolean isInHighGear(){
+        return shifter.get().equals(DoubleSolenoid.Value.kReverse);
+    }
+    public boolean isInLowGear(){
+        return shifter.get().equals(DoubleSolenoid.Value.kForward);
+    }
     
     public void brake(){
         

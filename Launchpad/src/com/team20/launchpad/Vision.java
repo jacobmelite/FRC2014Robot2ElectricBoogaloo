@@ -34,6 +34,8 @@ public class Vision {
     private byte[] buffer = new byte[5];
     Thread st;
 
+   
+
     public Vision() {
 
         st = new Thread() {
@@ -58,9 +60,9 @@ public class Vision {
                             incrementalTime = System.currentTimeMillis();
                         }
                         //get data from the beaglebone
-                        System.out.println("vision is getting data");
+                        //   System.out.println("vision is getting data");
                         getData(mode);
-                        System.out.println("vision is processing data");
+                        //  System.out.println("vision is processing data");
                         processBuffer();
 
                         //time limit on connection
@@ -204,7 +206,7 @@ public class Vision {
     private boolean isBallCentered(int x/*, int y*/) {
         return x * (1 - BALL_CENTERED_TOLERANCE) < BALL_CENTERED_PIXELS_X && x * (1 + BALL_CENTERED_TOLERANCE) > BALL_CENTERED_PIXELS_X;
     }
-    
+
     //getters
     public int getMode() {
         return mode;
@@ -273,5 +275,24 @@ public class Vision {
 
     public int getHorizontalY() {
         return horizontalY;
+    }
+     public void resetData() {
+        redBallDetected = false;
+        blueBallDetected = false;
+        horizontal = false;
+        vertical = false;
+        redBallInfoUpdated = false;
+        blueBallInfoUpdated = false;
+        horizontalInfoUpdated = false;
+        verticalInfoUpdated = false;
+        redBallX = 0;
+        redBallY = 0;
+        blueBallX = 0;
+        blueBallY = 0;
+        horizontalX = 0;
+        horizontalY = 0;
+        verticalX = 0;
+        verticalY = 0;
+        mode = 0;
     }
 }

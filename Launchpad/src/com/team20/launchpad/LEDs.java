@@ -57,7 +57,7 @@ public class LEDs {
         }
     }
 
-    public void setOutputs(boolean four, boolean two, boolean one) {
+    private void setOutputs(boolean four, boolean two, boolean one) {
         ones.set(one);
         twos.set(two);
         fours.set(four);
