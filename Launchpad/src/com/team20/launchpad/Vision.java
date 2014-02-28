@@ -19,7 +19,9 @@ public class Vision {
     private boolean redBallDetected = false, blueBallDetected = false,
             horizontal = false, vertical = false, redBallInfoUpdated = false,
             blueBallInfoUpdated = false, horizontalInfoUpdated = false,
-            verticalInfoUpdated = false;
+            verticalInfoUpdated = false, verticalInfoUpdatedOnce = false,
+            blueBallInfoUpdatedOnce = false, horizontalInfoUpdatedOnce = false,
+            redBallInfoUpdatedOnce = false, horizontalDetectedFirstUpdate=false;
     private int redBallX = 0, redBallY = 0,
             blueBallX = 0, blueBallY = 0,
             horizontalX = 0, horizontalY = 0,
@@ -40,7 +42,7 @@ public class Vision {
             public void run() {
                 //open connection
                 try {
-                    sc = (SocketConnection) Connector.open("socket://10.0.20.123:9090");
+                    sc = (SocketConnection) Connector.open("socket://10.0.20.15:9090");
                     sc.setSocketOption(SocketConnection.LINGER, 5);
                     os = sc.openOutputStream();
                     is = sc.openInputStream();
@@ -158,24 +160,31 @@ public class Vision {
                 horizontalX = addBytes(buffer[1], buffer[2]);
                 horizontalY = addBytes(buffer[3], buffer[4]);
                 horizontalInfoUpdated = true;
+                if (!horizontalInfoUpdatedOnce) {
+                    horizontalDetectedFirstUpdate = horizontal;
+                    horizontalInfoUpdatedOnce = true;
+                }
                 break;
             case 1:
                 vertical = isByteTrue(buffer[0]);
                 verticalX = addBytes(buffer[1], buffer[2]);
                 verticalY = addBytes(buffer[3], buffer[4]);
                 verticalInfoUpdated = true;
+                verticalInfoUpdatedOnce = true;
                 break;
             case 2:
                 redBallDetected = isByteTrue(buffer[0]);
                 redBallX = addBytes(buffer[1], buffer[2]);
                 redBallY = addBytes(buffer[3], buffer[4]);
                 redBallInfoUpdated = true;
+                redBallInfoUpdatedOnce = true;
                 break;
             case 3:
                 blueBallDetected = isByteTrue(buffer[0]);
                 blueBallX = addBytes(buffer[1], buffer[2]);
                 blueBallY = addBytes(buffer[3], buffer[4]);
                 blueBallInfoUpdated = true;
+                blueBallInfoUpdatedOnce = true;
                 break;
         }
         resetBuffer();
@@ -206,7 +215,7 @@ public class Vision {
         }
     }
 
-    public boolean isXValCentered(int x/*, int y*/) {
+    private boolean isXValCentered(int x/*, int y*/) {
         return x * (1 - BALL_CENTERED_TOLERANCE) < BALL_CENTERED_PIXELS_X && x * (1 + BALL_CENTERED_TOLERANCE) > BALL_CENTERED_PIXELS_X;
     }
 
@@ -245,20 +254,40 @@ public class Vision {
         return blueBallInfoUpdated;
     }
 
-    public boolean getRedBallDetected() {
+    public boolean isRedBallInfoUpdatedOnce() {
+        return redBallInfoUpdatedOnce;
+    }
+
+    public boolean isBlueBallInfoUpdatedOnce() {
+        return blueBallInfoUpdatedOnce;
+    }
+
+    public boolean isHorizontalInfoUpdatedOnce() {
+        return horizontalInfoUpdatedOnce;
+    }
+
+    public boolean isVerticalInfoUpdatedOnce() {
+        return verticalInfoUpdatedOnce;
+    }
+
+    public boolean isHorizontalDetectedFirstUpdate() {
+        return horizontalDetectedFirstUpdate;
+    }
+
+    public boolean isRedBallDetected() {
         return redBallDetected;
 
     }
 
-    public boolean getBlueBallDetected() {
+    public boolean isBlueBallDetected() {
         return blueBallDetected;
     }
 
-    public boolean getVerticalDetected() {
+    public boolean isVerticalDetected() {
         return vertical;
     }
 
-    public boolean getHorizontalDetected() {
+    public boolean isHorizontalDetected() {
         return horizontal;
     }
 

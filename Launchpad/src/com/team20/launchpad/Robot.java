@@ -34,9 +34,10 @@ public class Robot extends IterativeRobot {
     JoystickButton button1, button2, button3, button4, button5, button6, button7, button8, button9, button10;
     boolean previousDPadUp = false, previousDPadLeft = false, previousDPadRight = false, previousDPadDown = false;
     boolean allPanelsBlooming = false;
-    boolean launcherPulledBackLEDFinished = false;
-    long launcherPulledBackLEDStartTime = 0;
+    boolean launcherPulledBackLEDFinished = false, firstBallShot = false;
+    long launcherPulledBackLEDStartTime = 0, autoStartTime;
     final long LAUNCHER_PULLED_BACK_LED_TIME_LIMIT = 2000;//2 second time limit
+    final boolean STARTING_ON_RIGHT_HALF_OF_FIELD = true;//"right" relative to facing the goal we score in
 
     Drivetrain drivetrain;
     Collector collector;
@@ -124,8 +125,8 @@ public class Robot extends IterativeRobot {
         //set led mode here
         if (!DriverStation.getInstance().isTest() && !DriverStation.getInstance().isDisabled()) {//if it's not in test or disable mode, continue
 
-            //if there is an initialized vision class and there is a horizontal goal that has been found and it is up to date
-            if (!(vision == null) && vision.getHorizontalDetected() && vision.isHorizontalInfoUpdated()) {
+            //if there is a horizontal goal that has been found and it is up to date
+            if (vision.isHorizontalDetected() && vision.isHorizontalInfoUpdated()) {
                 leds.setMode(3);
             } else if (DriverStation.getInstance().isAutonomous()) {//if we are in auto mode
                 leds.setMode(2);
@@ -166,6 +167,8 @@ public class Robot extends IterativeRobot {
         } else if (DriverStation.getInstance().getDigitalIn(8)) {
             autonomousMode = 8;
         }
+
+        autoStartTime = System.currentTimeMillis();
     }
 
     /**
@@ -298,6 +301,89 @@ public class Robot extends IterativeRobot {
             drivetrain.arcadeDrive(0, 0);
             collector.stop();
         }
+    }
+
+    /**
+     * waits for stuff to open, waits for horizontal info to update, if there is
+     * no goal detected within the first 5 seconds of auto, then you shoot the
+     * ball into the now-hot goal
+     */
+    public void hotOneBallPeriodic() {
+        if (!vision.isHorizontalInfoUpdated()) {
+            vision.lookForHorizontalInfo();
+        }
+        if (counter < 40) {
+            //Wait for stuff to open
+            backPanel.bloom();
+        } else if (vision.isHorizontalInfoUpdatedOnce()) {
+            if (vision.isHorizontalDetected()) {
+                catapult.shoot();
+                drivetrain.arcadeDrive(0, 0);
+            } else if (System.currentTimeMillis() - autoStartTime > 5000) {
+
+                catapult.shoot();
+                drivetrain.arcadeDrive(0, 0);
+            }
+
+        }
+
+    }
+
+    public void hotTwoBallPeriodic() {
+        if (!vision.isHorizontalInfoUpdated()) {
+            vision.lookForHorizontalInfo();
+        }
+        if (counter < 40) {
+            //Wait for stuff to open
+            leftPanel.bloom();
+            rightPanel.bloom();
+            backPanel.bloom();
+            collector.bloom();
+            collector.drive();
+        }
+        if (vision.isHorizontalInfoUpdatedOnce() && counter >= 40) {//waiting for horizontal to update and stuff to open
+            if (vision.isHorizontalDetectedFirstUpdate()) {//need to shoot
+                catapult.shoot();
+                firstBallShot = true;
+                drivetrain.arcadeDrive(0, 0);
+            } else if (!vision.isHorizontalDetectedFirstUpdate() && !firstBallShot) {//need to turn and shoot
+                if (!turnToGoal()) {
+                    //shooting
+                    drivetrain.arcadeDrive(0, 0);
+                    firstBallShot = true;
+                    catapult.shoot();
+                }
+            }
+        }
+        if (firstBallShot) {//turn back to start, collect ball, and shoot
+            if (drivetrain.getLeftEncoderCount() < (turningModifier * 500 * 1.25)) {//TODO:test the value needed to turn to the correct angle
+                //turning
+                drivetrain.arcadeDrive(0, -turningModifier);//turn left if on the right half, turn right if on the left half
+
+            } else {
+                //shooting
+                drivetrain.arcadeDrive(0, 0);
+                firstBallShot = true;
+                catapult.shoot();
+            }
+        }
+    }
+
+    /**
+     *
+     * @return false if the turn has not been completed
+     */
+    private boolean turnToGoal() {
+        if (STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() > (-500 * 1.25)) {//TODO:test the value needed to turn to the correct angle
+            //turning
+            drivetrain.arcadeDrive(0, -1);//turn left if on the right half
+            return false;
+        } else if (!STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() < (500 * 1.25)) {
+
+            drivetrain.arcadeDrive(0, 1);//turn right if on the left half
+            return false;
+        }
+        return true;
     }
 
     public void teleopInit() {
