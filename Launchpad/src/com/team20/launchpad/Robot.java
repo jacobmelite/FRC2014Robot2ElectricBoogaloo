@@ -333,7 +333,7 @@ public class Robot extends IterativeRobot {
             kIdling = 3, kGettingBall = 4, kTurning = 5, kShooting2 = 6,
             kIdling2 = 7;
     int state = kBlooming;    
-    public void hotTwoBallPeriodic() {
+    public void hotTwoBallPeriodic() {//NOTE: if the starting goal is hot initially, this only gets 1 hot and 1 not hot
         switch (state) {
             case kStop://stops the robot
                 drivetrain.arcadeDrive(0, 0);
@@ -424,11 +424,11 @@ public class Robot extends IterativeRobot {
         } else if (!turnToStartPos && !STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() < (500 * 1.25)) {
             drivetrain.arcadeDrive(0, 1);//turn right if on the left half
             return false;
-        } else if (STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() < (0)) {
-            drivetrain.arcadeDrive(0, 1);
+        } else if (STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() < (0)) {//turn to starting goal
+            drivetrain.arcadeDrive(0, 1);//turns right if on right half
             return false;
-        } else if (!STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() > (0)) {
-            drivetrain.arcadeDrive(0, -1);
+        } else if (!STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() > (0)) {//turns to starting goal
+            drivetrain.arcadeDrive(0, -1);//turns left if on left half
             return false;
         }
         drivetrain.arcadeDrive(0, 0);

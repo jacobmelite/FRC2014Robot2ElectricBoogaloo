@@ -18,10 +18,10 @@ public class LEDs {
     int state;
 
     public LEDs(int mode, int foursChannel, int twosChannel, int onesChannel) {
-        setMode(mode);
         ones = new DigitalOutput(onesChannel);
         twos = new DigitalOutput(twosChannel);
         fours = new DigitalOutput(foursChannel);
+        setMode(mode);
     }
 
     public void setMode(int mode) {
