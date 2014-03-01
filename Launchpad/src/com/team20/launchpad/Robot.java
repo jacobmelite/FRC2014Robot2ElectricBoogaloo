@@ -328,44 +328,87 @@ public class Robot extends IterativeRobot {
         }
 
     }
-
+    
+    final int kStop = -1, kBlooming = 0, kProcessing = 1, kShooting = 2,
+            kIdling = 3, kGettingBall = 4, kTurning = 5, kShooting2 = 6,
+            kIdling2 = 7;
+    int state = kBlooming;    
     public void hotTwoBallPeriodic() {
-        if (!vision.isHorizontalInfoUpdated()) {
-            vision.lookForHorizontalInfo();
-        }
-        if (counter < 40) {
-            //Wait for stuff to open
-            leftPanel.bloom();
-            rightPanel.bloom();
-            backPanel.bloom();
-            collector.bloom();
-            collector.drive();
-        }
-        if (vision.isHorizontalInfoUpdatedOnce() && counter >= 40) {//waiting for horizontal to update and stuff to open
-            if (vision.isHorizontalDetectedFirstUpdate()) {//need to shoot
-                catapult.shoot();
-                firstBallShot = true;
+        switch (state) {
+            case kStop://stops the robot
                 drivetrain.arcadeDrive(0, 0);
-            } else if (!vision.isHorizontalDetectedFirstUpdate() && !firstBallShot) {//need to turn and shoot
-                if (!turnToGoal()) {
-                    //shooting
-                    drivetrain.arcadeDrive(0, 0);
-                    firstBallShot = true;
-                    catapult.shoot();
+                break;
+            case kBlooming://blooms everything and starts collector
+                vision.lookForHorizontalInfo();//sets the vision to look for the horizontal info
+                
+                if (counter < 40) {
+                    //Wait for stuff to open
+                    leftPanel.bloom();
+                    rightPanel.bloom();
+                    backPanel.bloom();
+                    collector.bloom();
+                    collector.drive();
+                } else {
+                    state = kProcessing;//wait for image processing
                 }
-            }
-        }
-        if (firstBallShot) {//turn back to start, collect ball, and shoot
-            if (drivetrain.getLeftEncoderCount() < (turningModifier * 500 * 1.25)) {//TODO:test the value needed to turn to the correct angle
-                //turning
-                drivetrain.arcadeDrive(0, -turningModifier);//turn left if on the right half, turn right if on the left half
-
-            } else {
-                //shooting
-                drivetrain.arcadeDrive(0, 0);
-                firstBallShot = true;
+                break;
+            case kProcessing://wait for image processing
+                if (vision.isHorizontalInfoUpdated()) {//wait for camera to send data
+                    if (vision.isHorizontalDetectedFirstUpdate()) {//hot goal found
+                        state = kShooting;//hot goal found, shoot into it
+                    } else {
+                        state = kTurning;//hot goal not found, turn to opposite goal
+                    }
+                }
+                break;
+            case kShooting://shoots the ball
+                if (!firstBallShot) {
+                    state = kIdling;//idles after the ball is shot
+                } else {
+                    state = kStop;//stops the robot after autonomous has ended
+                }
                 catapult.shoot();
-            }
+                firstBallShot = true;
+                drivetrain.arcadeDrive(0, 0);
+                counter = 0;
+                break;
+            case kIdling://waits for the shooter to finish
+                if (counter > 200) {
+                    state = kGettingBall;//drives to the ball in front of us
+                    drivetrain.resetEncoders();
+                }
+                break;
+            case kGettingBall://drives to the ball in front of us
+                if (drivetrain.getLeftEncoderCount() < 1100) {
+                    drivetrain.arcadeDrive(1, 0);//drive forward
+                } else {
+                    drivetrain.arcadeDrive(0, 0);
+                    state = kShooting;//shoot the ball we collected TODO: test if backing up after collecting is necessary
+                }
+                break;
+            case kTurning://turns to either the opposite goal or the goal in front of us
+                if (!firstBallShot) {
+                    if (turnToGoal(false)) {//turns to the opposite (hot) goal
+                        state = kShooting2;//shoots the ball
+                    }
+                } else {
+                    if (turnToGoal(true)) {//turns to the goal we were initially facing
+                        state = kGettingBall;//gets the ball in front of us
+                    }
+                }
+                break;
+            case kShooting2://shoots the ball
+                catapult.shoot();
+                firstBallShot = true;
+                drivetrain.arcadeDrive(0, 0);
+                counter = 0;
+                state = kIdling2;
+                break;
+            case kIdling2://waits for the ball to shoot
+                if (counter > 200) {
+                    state = kTurning;//turns back to initial goal
+                }
+                break;
         }
     }
 
@@ -373,16 +416,22 @@ public class Robot extends IterativeRobot {
      *
      * @return false if the turn has not been completed
      */
-    private boolean turnToGoal() {
-        if (STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() > (-500 * 1.25)) {//TODO:test the value needed to turn to the correct angle
+    private boolean turnToGoal(boolean turnToStartPos) {
+        if (!turnToStartPos && STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() > (-500 * 1.25)) {//TODO:test the value needed to turn to the correct angle
             //turning
             drivetrain.arcadeDrive(0, -1);//turn left if on the right half
             return false;
-        } else if (!STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() < (500 * 1.25)) {
-
+        } else if (!turnToStartPos && !STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() < (500 * 1.25)) {
             drivetrain.arcadeDrive(0, 1);//turn right if on the left half
             return false;
+        } else if (STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() < (0)) {
+            drivetrain.arcadeDrive(0, 1);
+            return false;
+        } else if (!STARTING_ON_RIGHT_HALF_OF_FIELD && drivetrain.getLeftEncoderCount() > (0)) {
+            drivetrain.arcadeDrive(0, -1);
+            return false;
         }
+        drivetrain.arcadeDrive(0, 0);
         return true;
     }
 
