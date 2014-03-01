@@ -303,6 +303,7 @@ public class Robot extends IterativeRobot {
         }
     }
 
+    
     /**
      * waits for stuff to open, waits for horizontal info to update, if there is
      * no goal detected within the first 5 seconds of auto, then you shoot the
@@ -315,8 +316,8 @@ public class Robot extends IterativeRobot {
         if (counter < 40) {
             //Wait for stuff to open
             backPanel.bloom();
-        } else if (vision.isHorizontalInfoUpdatedOnce()) {
-            if (vision.isHorizontalDetected()) {
+        } else if (vision.isHorizontalInfoUpdatedTwice()) {
+            if (vision.isHorizontalDetectedFirstUpdate()||vision.isHorizontalDetectedSecondUpdate()) {
                 catapult.shoot();
                 drivetrain.arcadeDrive(0, 0);
             } else if (System.currentTimeMillis() - autoStartTime > 5000) {
@@ -331,9 +332,9 @@ public class Robot extends IterativeRobot {
     
     final int kStop = -1, kBlooming = 0, kProcessing = 1, kShooting = 2,
             kIdling = 3, kGettingBall = 4, kTurning = 5, kShooting2 = 6,
-            kIdling2 = 7;
+            kIdling2 = 7, kTurning2 = 8;
     int state = kBlooming;    
-    public void hotTwoBallPeriodic() {//NOTE: if the starting goal is hot initially, this only gets 1 hot and 1 not hot
+    public void hotTwoBallPeriodic() {
         switch (state) {
             case kStop://stops the robot
                 drivetrain.arcadeDrive(0, 0);
@@ -353,8 +354,8 @@ public class Robot extends IterativeRobot {
                 }
                 break;
             case kProcessing://wait for image processing
-                if (vision.isHorizontalInfoUpdated()) {//wait for camera to send data
-                    if (vision.isHorizontalDetectedFirstUpdate()) {//hot goal found
+                if (vision.isHorizontalInfoUpdatedTwice()) {//wait for camera to send data
+                    if (vision.isHorizontalDetectedFirstUpdate()||vision.isHorizontalInfoUpdatedTwice()) {//hot goal found
                         state = kShooting;//hot goal found, shoot into it
                     } else {
                         state = kTurning;//hot goal not found, turn to opposite goal
@@ -379,11 +380,14 @@ public class Robot extends IterativeRobot {
                 }
                 break;
             case kGettingBall://drives to the ball in front of us
-                if (drivetrain.getLeftEncoderCount() < 1100) {
-                    drivetrain.arcadeDrive(1, 0);//drive forward
-                } else {
+                if (drivetrain.getLeftEncoderCount() >-1100) { 
+                    drivetrain.arcadeDrive(-1, 0);//drive backwards
+                } else if(vision.isHorizontalDetectedFirstUpdate()||vision.isHorizontalInfoUpdatedTwice()){
                     drivetrain.arcadeDrive(0, 0);
-                    state = kShooting;//shoot the ball we collected TODO: test if backing up after collecting is necessary
+                    state = kShooting;//shoot the ball we collected
+                } else{
+                    drivetrain.resetEncoders();
+                    state = kTurning2;//turn if we haven't shot into the opposite goal yet
                 }
                 break;
             case kTurning://turns to either the opposite goal or the goal in front of us
@@ -407,6 +411,11 @@ public class Robot extends IterativeRobot {
             case kIdling2://waits for the ball to shoot
                 if (counter > 200) {
                     state = kTurning;//turns back to initial goal
+                }
+                break;
+            case kTurning2:
+                if(turnToGoal(false)){
+                    state=kShooting;
                 }
                 break;
         }

@@ -19,9 +19,9 @@ public class Vision {
     private boolean redBallDetected = false, blueBallDetected = false,
             horizontal = false, vertical = false, redBallInfoUpdated = false,
             blueBallInfoUpdated = false, horizontalInfoUpdated = false,
-            verticalInfoUpdated = false, verticalInfoUpdatedOnce = false,
-            blueBallInfoUpdatedOnce = false, horizontalInfoUpdatedOnce = false,
-            redBallInfoUpdatedOnce = false, horizontalDetectedFirstUpdate=false;
+            verticalInfoUpdated = false, horizontalInfoUpdatedOnce = false,
+            horizontalDetectedFirstUpdate = false, horizontalInfoUpdatedTwice = false,
+            horizontalDetectedSecondUpdate = false;
     private int redBallX = 0, redBallY = 0,
             blueBallX = 0, blueBallY = 0,
             horizontalX = 0, horizontalY = 0,
@@ -160,6 +160,10 @@ public class Vision {
                 horizontalX = addBytes(buffer[1], buffer[2]);
                 horizontalY = addBytes(buffer[3], buffer[4]);
                 horizontalInfoUpdated = true;
+                if (horizontalInfoUpdatedOnce && !horizontalInfoUpdatedTwice) {
+                    horizontalInfoUpdatedTwice = true;
+                    horizontalDetectedSecondUpdate = horizontal;
+                }
                 if (!horizontalInfoUpdatedOnce) {
                     horizontalDetectedFirstUpdate = horizontal;
                     horizontalInfoUpdatedOnce = true;
@@ -170,21 +174,18 @@ public class Vision {
                 verticalX = addBytes(buffer[1], buffer[2]);
                 verticalY = addBytes(buffer[3], buffer[4]);
                 verticalInfoUpdated = true;
-                verticalInfoUpdatedOnce = true;
                 break;
             case 2:
                 redBallDetected = isByteTrue(buffer[0]);
                 redBallX = addBytes(buffer[1], buffer[2]);
                 redBallY = addBytes(buffer[3], buffer[4]);
                 redBallInfoUpdated = true;
-                redBallInfoUpdatedOnce = true;
                 break;
             case 3:
                 blueBallDetected = isByteTrue(buffer[0]);
                 blueBallX = addBytes(buffer[1], buffer[2]);
                 blueBallY = addBytes(buffer[3], buffer[4]);
                 blueBallInfoUpdated = true;
-                blueBallInfoUpdatedOnce = true;
                 break;
         }
         resetBuffer();
@@ -254,24 +255,18 @@ public class Vision {
         return blueBallInfoUpdated;
     }
 
-    public boolean isRedBallInfoUpdatedOnce() {
-        return redBallInfoUpdatedOnce;
-    }
-
-    public boolean isBlueBallInfoUpdatedOnce() {
-        return blueBallInfoUpdatedOnce;
-    }
-
     public boolean isHorizontalInfoUpdatedOnce() {
         return horizontalInfoUpdatedOnce;
     }
 
-    public boolean isVerticalInfoUpdatedOnce() {
-        return verticalInfoUpdatedOnce;
-    }
-
     public boolean isHorizontalDetectedFirstUpdate() {
         return horizontalDetectedFirstUpdate;
+    }
+    public boolean isHorizontalInfoUpdatedTwice(){
+        return horizontalInfoUpdatedTwice;
+    }
+    public boolean isHorizontalDetectedSecondUpdate(){
+        return horizontalDetectedSecondUpdate;
     }
 
     public boolean isRedBallDetected() {
